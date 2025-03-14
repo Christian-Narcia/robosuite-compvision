@@ -1,9 +1,4 @@
-import time
-
-from robosuite.robots import MobileRobot
 from robosuite.utils.input_utils import *
-
-MAX_FR = 25  # max frame rate for running simluation
 
 if __name__ == "__main__":
 
@@ -23,20 +18,23 @@ if __name__ == "__main__":
         options["env_configuration"] = choose_multi_arm_config()
 
         # If chosen configuration was bimanual, the corresponding robot must be Baxter. Else, have user choose robots
-        if options["env_configuration"] == "single-robot":
-            options["robots"] = choose_robots(exclude_bimanual=False, use_humanoids=True, exclude_single_arm=True)
+        if options["env_configuration"] == "bimanual":
+            options["robots"] = "Baxter"
         else:
             options["robots"] = []
 
             # Have user choose two robots
+            print("A multiple single-arm configuration was chosen.\n")
+
             for i in range(2):
                 print("Please choose Robot {}...\n".format(i))
-                options["robots"].append(choose_robots(exclude_bimanual=False, use_humanoids=True))
+                options["robots"].append(choose_robots(exclude_bimanual=True))
     # If a humanoid environment has been chosen, choose humanoid robots
     elif "Humanoid" in options["env_name"]:
         options["robots"] = choose_robots(use_humanoids=True)
+    # Else, we simply choose a single (single-armed) robot to instantiate in the environment
     else:
-        options["robots"] = choose_robots(exclude_bimanual=False, use_humanoids=True)
+        options["robots"] = choose_robots(exclude_bimanual=True)
 
     # initialize the task
     env = suite.make(
@@ -49,19 +47,12 @@ if __name__ == "__main__":
     )
     env.reset()
     env.viewer.set_camera(camera_id=0)
-    for robot in env.robots:
-        if isinstance(robot, MobileRobot):
-            robot.enable_parts(legs=False, base=False)
+
+    # Get action limits
+    low, high = env.action_spec
 
     # do visualization
     for i in range(10000):
-        start = time.time()
-        action = np.random.randn(*env.action_spec[0].shape)
+        action = np.random.uniform(low, high)
         obs, reward, done, _ = env.step(action)
         env.render()
-
-        # limit frame rate if necessary
-        elapsed = time.time() - start
-        diff = 1 / MAX_FR - elapsed
-        if diff > 0:
-            time.sleep(diff)

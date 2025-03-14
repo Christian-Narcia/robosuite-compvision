@@ -20,7 +20,7 @@ from robosuite.controllers.composite.composite_controller import WholeBody
 from robosuite.wrappers import DataCollectionWrapper, VisualizationWrapper
 
 
-def collect_human_trajectory(env, device, arm, max_fr):
+def collect_human_trajectory(env, device, arm):
     """
     Use the device (keyboard or SpaceNav 3D mouse) to collect a demonstration.
     The rollout trajectory is saved to files in npz format.
@@ -30,7 +30,6 @@ def collect_human_trajectory(env, device, arm, max_fr):
         env (MujocoEnv): environment to control
         device (Device): to receive controls from the device
         arms (str): which arm to control (eg bimanual) 'right' or 'left'
-        max_fr (int): if specified, pause the simulation whenever simulation runs faster than max_fr
     """
 
     env.reset()
@@ -54,8 +53,6 @@ def collect_human_trajectory(env, device, arm, max_fr):
 
     # Loop until we get a reset from the input or the task completes
     while True:
-        start = time.time()
-
         # Set active robot
         active_robot = env.robots[device.active_robot]
 
@@ -106,13 +103,6 @@ def collect_human_trajectory(env, device, arm, max_fr):
         else:
             task_completion_hold_count = -1  # null the counter if there's no success
 
-        # limit frame rate if necessary
-        if max_fr is not None:
-            elapsed = time.time() - start
-            diff = 1 / max_fr - elapsed
-            if diff > 0:
-                time.sleep(diff)
-
     # cleanup for end of data collection episodes
     env.close()
 
@@ -155,6 +145,7 @@ def gather_demonstrations_as_hdf5(directory, out_dir, env_info):
     env_name = None  # will get populated at some point
 
     for ep_directory in os.listdir(directory):
+
         state_paths = os.path.join(directory, ep_directory, "state_*.npz")
         states = []
         actions = []
@@ -216,31 +207,12 @@ if __name__ == "__main__":
         default=os.path.join(suite.models.assets_root, "demonstrations_private"),
     )
     parser.add_argument("--environment", type=str, default="Lift")
+    parser.add_argument("--robots", nargs="+", type=str, default="Panda", help="Which robot(s) to use in the env")
     parser.add_argument(
-        "--robots",
-        nargs="+",
-        type=str,
-        default="Panda",
-        help="Which robot(s) to use in the env",
+        "--config", type=str, default="default", help="Specified environment configuration if necessary"
     )
-    parser.add_argument(
-        "--config",
-        type=str,
-        default="default",
-        help="Specified environment configuration if necessary",
-    )
-    parser.add_argument(
-        "--arm",
-        type=str,
-        default="right",
-        help="Which arm to control (eg bimanual) 'right' or 'left'",
-    )
-    parser.add_argument(
-        "--camera",
-        type=str,
-        default="agentview",
-        help="Which camera to use for collecting demos",
-    )
+    parser.add_argument("--arm", type=str, default="right", help="Which arm to control (eg bimanual) 'right' or 'left'")
+    parser.add_argument("--camera", type=str, default="agentview", help="Which camera to use for collecting demos")
     parser.add_argument(
         "--controller",
         type=str,
@@ -248,35 +220,13 @@ if __name__ == "__main__":
         help="Choice of controller. Can be generic (eg. 'BASIC' or 'WHOLE_BODY_MINK_IK') or json file (see robosuite/controllers/config for examples)",
     )
     parser.add_argument("--device", type=str, default="keyboard")
-    parser.add_argument(
-        "--pos-sensitivity",
-        type=float,
-        default=1.0,
-        help="How much to scale position user inputs",
-    )
-    parser.add_argument(
-        "--rot-sensitivity",
-        type=float,
-        default=1.0,
-        help="How much to scale rotation user inputs",
-    )
+    parser.add_argument("--pos-sensitivity", type=float, default=1.0, help="How much to scale position user inputs")
+    parser.add_argument("--rot-sensitivity", type=float, default=1.0, help="How much to scale rotation user inputs")
     parser.add_argument(
         "--renderer",
         type=str,
         default="mjviewer",
         help="Use Mujoco's builtin interactive viewer (mjviewer) or OpenCV viewer (mujoco)",
-    )
-    parser.add_argument(
-        "--max_fr",
-        default=20,
-        type=int,
-        help="Sleep when simluation runs faster than specified frame rate; 20 fps is real time.",
-    )
-    parser.add_argument(
-        "--reverse_xy",
-        type=bool,
-        default=False,
-        help="(DualSense Only)Reverse the effect of the x and y axes of the joystick.It is used to handle the case that the left/right and front/back sides of the view are opposite to the LX and LY of the joystick(Push LX up but the robot move left in your view)",
     )
     args = parser.parse_args()
 
@@ -328,28 +278,11 @@ if __name__ == "__main__":
     if args.device == "keyboard":
         from robosuite.devices import Keyboard
 
-        device = Keyboard(
-            env=env,
-            pos_sensitivity=args.pos_sensitivity,
-            rot_sensitivity=args.rot_sensitivity,
-        )
+        device = Keyboard(env=env, pos_sensitivity=args.pos_sensitivity, rot_sensitivity=args.rot_sensitivity)
     elif args.device == "spacemouse":
         from robosuite.devices import SpaceMouse
 
-        device = SpaceMouse(
-            env=env,
-            pos_sensitivity=args.pos_sensitivity,
-            rot_sensitivity=args.rot_sensitivity,
-        )
-    elif args.device == "dualsense":
-        from robosuite.devices import DualSense
-
-        device = DualSense(
-            env=env,
-            pos_sensitivity=args.pos_sensitivity,
-            rot_sensitivity=args.rot_sensitivity,
-            reverse_xy=args.reverse_xy,
-        )
+        device = SpaceMouse(env=env, pos_sensitivity=args.pos_sensitivity, rot_sensitivity=args.rot_sensitivity)
     elif args.device == "mjgui":
         assert args.renderer == "mjviewer", "Mocap is only supported with the mjviewer renderer"
         from robosuite.devices.mjgui import MJGUI
@@ -365,5 +298,5 @@ if __name__ == "__main__":
 
     # collect demonstrations
     while True:
-        collect_human_trajectory(env, device, args.arm, args.max_fr)
+        collect_human_trajectory(env, device, args.arm)
         gather_demonstrations_as_hdf5(tmp_directory, new_dir, env_info)

@@ -1,6 +1,6 @@
 {
     "type": "HYBRID_MOBILE_BASE",
-    "body_parts": {
+    "body_parts_controller_configs": {
         "arms": {
             "right": {
                 "type": "OSC_POSE",

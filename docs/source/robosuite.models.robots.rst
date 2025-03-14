@@ -12,14 +12,6 @@ Subpackages
 Submodules
 ----------
 
-robosuite.models.robots.compositional module
---------------------------------------------
-
-.. automodule:: robosuite.models.robots.compositional
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 robosuite.models.robots.robot\_model module
 -------------------------------------------
 

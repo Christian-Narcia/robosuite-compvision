@@ -1,7 +1,6 @@
 """
 Tests panda gripper on grabbing task
 """
-
 from robosuite.models.grippers import GripperTester, PandaGripper
 
 

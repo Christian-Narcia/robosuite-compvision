@@ -9,8 +9,7 @@ import robosuite
 import robosuite.macros as macros
 import robosuite.utils.sim_utils as SU
 from robosuite.renderers.base import load_renderer_config
-from robosuite.renderers.viewer import OpenCVViewer
-from robosuite.utils import SimulationError, XMLError
+from robosuite.utils import OpenCVRenderer, SimulationError, XMLError
 from robosuite.utils.binding_utils import MjRenderContextOffscreen, MjSim
 
 REGISTERED_ENVS = {}
@@ -176,7 +175,7 @@ class MujocoEnv(metaclass=EnvMeta):
         if self.renderer == "mujoco":
             pass
         elif self.renderer == "mjviewer":
-            from robosuite.renderers.viewer import MjviewerRenderer
+            from robosuite.renderers.mjviewer.mjviewer_renderer import MjviewerRenderer
 
             if self.render_camera is not None:
                 camera_id = self.sim.model.camera_name2id(self.render_camera)
@@ -264,10 +263,6 @@ class MujocoEnv(metaclass=EnvMeta):
         # TODO(yukez): investigate black screen of death
         # Use hard reset if requested
 
-        # always terminate mjviewer
-        if self.renderer == "mjviewer":
-            self._destroy_viewer()
-
         if self.hard_reset and not self.deterministic_reset:
             if self.renderer == "mujoco":
                 self._destroy_viewer()
@@ -319,7 +314,7 @@ class MujocoEnv(metaclass=EnvMeta):
         # create visualization screen or renderer
         if self.has_renderer and self.viewer is None:
             if self.renderer == "mujoco":
-                self.viewer = OpenCVViewer(self.sim)
+                self.viewer = OpenCVRenderer(self.sim)
 
                 # Set the camera angle for viewing
                 if self.render_camera is not None:

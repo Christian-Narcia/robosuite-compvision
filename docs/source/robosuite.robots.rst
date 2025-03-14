@@ -4,26 +4,18 @@ robosuite.robots package
 Submodules
 ----------
 
-robosuite.robots.fixed\_base\_robot module
-------------------------------------------
+robosuite.robots.bimanual module
+--------------------------------
 
-.. automodule:: robosuite.robots.fixed_base_robot
+.. automodule:: robosuite.robots.bimanual
    :members:
    :undoc-members:
    :show-inheritance:
 
-robosuite.robots.legged\_robot module
--------------------------------------
+robosuite.robots.manipulator module
+-----------------------------------
 
-.. automodule:: robosuite.robots.legged_robot
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-robosuite.robots.mobile\_robot module
--------------------------------------
-
-.. automodule:: robosuite.robots.mobile_robot
+.. automodule:: robosuite.robots.manipulator
    :members:
    :undoc-members:
    :show-inheritance:
@@ -36,10 +28,10 @@ robosuite.robots.robot module
    :undoc-members:
    :show-inheritance:
 
-robosuite.robots.wheeled\_robot module
---------------------------------------
+robosuite.robots.single\_arm module
+-----------------------------------
 
-.. automodule:: robosuite.robots.wheeled_robot
+.. automodule:: robosuite.robots.single_arm
    :members:
    :undoc-members:
    :show-inheritance:

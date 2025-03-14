@@ -17,12 +17,6 @@ The base installation requires the MuJoCo physics engine (with [mujoco](https://
    $ python -m robosuite.demos.demo_random_action
    ```
 
-   <div class="admonition warning">
-   <p class="admonition-title">Attention Mac users!</p>
-
-   Mac users who wish to use the default mjviewer renderer need to prepend the "python" command with "mj": `mjpython ...`
-   </div>
-
 ### Install from source
 
 1. Clone the robosuite repository
@@ -37,7 +31,7 @@ The base installation requires the MuJoCo physics engine (with [mujoco](https://
    ```
    This will also install our library as an editable package, such that local changes will be reflected elsewhere without having to reinstall the package.
 
-3. (Optional) We also provide add-on functionalities, such as [OpenAI Gym](https://github.com/openai/gym) [interfaces](source/robosuite.wrappers), [inverse kinematics controllers](source/robosuite.controllers) powered by [PyBullet](http://bulletphysics.org), and [teleoperation](source/robosuite.devices) with [SpaceMouse](https://www.3dconnexion.com/products/spacemouse.html) and [DualSense](https://www.playstation.com/en-us/accessories/dualsense-wireless-controller/) devices. To enable these additional features, please install the extra dependencies by running
+3. (Optional) We also provide add-on functionalities, such as [OpenAI Gym](https://github.com/openai/gym) [interfaces](source/robosuite.wrappers), [inverse kinematics controllers](source/robosuite.controllers) powered by [PyBullet](http://bulletphysics.org), and [teleoperation](source/robosuite.devices) with [SpaceMouse](https://www.3dconnexion.com/products/spacemouse.html) devices. To enable these additional features, please install the extra dependencies by running
    ```sh
    $ pip3 install -r requirements-extra.txt
    ```
@@ -46,12 +40,6 @@ The base installation requires the MuJoCo physics engine (with [mujoco](https://
    ```sh
    $ python robosuite/demos/demo_random_action.py
    ```
-
-   <div class="admonition warning">
-   <p class="admonition-title">Attention Mac users!</p>
-
-   Mac users who wish to use the default mjviewer renderer need to prepend the "python" command with "mj": `mjpython ...`
-   </div>
 
 ### Installing on Windows
 

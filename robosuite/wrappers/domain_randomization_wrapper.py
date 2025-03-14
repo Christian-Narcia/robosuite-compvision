@@ -2,10 +2,8 @@
 This file implements a wrapper for facilitating domain randomization over
 robosuite environments.
 """
-import mujoco
 import numpy as np
 
-from robosuite.utils.log_utils import rs_assert
 from robosuite.utils.mjmod import CameraModder, DynamicsModder, LightingModder, TextureModder
 from robosuite.wrappers import Wrapper
 
@@ -156,13 +154,6 @@ class DomainRandomizationWrapper(Wrapper):
         self.modders = []
 
         if self.randomize_color:
-            rs_assert(
-                mujoco.__version__ == "3.1.1",
-                (
-                    "TextureModder requires mujoco version 3.1.1 to run. "
-                    "Pending support for later versions. Alternatively, you can set randomize_color=False."
-                ),
-            )
             self.tex_modder = TextureModder(
                 sim=self.env.sim, random_state=self.random_state, **self.color_randomization_args
             )

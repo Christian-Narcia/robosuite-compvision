@@ -44,18 +44,18 @@ robosuite.environments.manipulation.pick\_place module
    :undoc-members:
    :show-inheritance:
 
-robosuite.environments.manipulation.stack module
-------------------------------------------------
+robosuite.environments.manipulation.single\_arm\_env module
+-----------------------------------------------------------
 
-.. automodule:: robosuite.environments.manipulation.stack
+.. automodule:: robosuite.environments.manipulation.single_arm_env
    :members:
    :undoc-members:
    :show-inheritance:
 
-robosuite.environments.manipulation.tool\_hang module
------------------------------------------------------
+robosuite.environments.manipulation.stack module
+------------------------------------------------
 
-.. automodule:: robosuite.environments.manipulation.tool_hang
+.. automodule:: robosuite.environments.manipulation.stack
    :members:
    :undoc-members:
    :show-inheritance:
@@ -88,14 +88,6 @@ robosuite.environments.manipulation.two\_arm\_peg\_in\_hole module
 ------------------------------------------------------------------
 
 .. automodule:: robosuite.environments.manipulation.two_arm_peg_in_hole
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-robosuite.environments.manipulation.two\_arm\_transport module
---------------------------------------------------------------
-
-.. automodule:: robosuite.environments.manipulation.two_arm_transport
    :members:
    :undoc-members:
    :show-inheritance:
