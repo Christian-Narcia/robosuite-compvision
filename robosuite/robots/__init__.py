@@ -20,6 +20,7 @@ ROBOT_CLASS_MAPPING = {
     "Panda": FixedBaseRobot,
     "Sawyer": FixedBaseRobot,
     "UR5e": FixedBaseRobot,
+    "UR5ev2": FixedBaseRobot,
     "SpotWithArm": LeggedRobot,
     "SpotWithArmFloating": LeggedRobot,
     "PandaOmron": WheeledRobot,

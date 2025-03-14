@@ -1,6 +1,10 @@
 from robosuite.environments.base import make
 
 # Manipulation environments
+from robosuite.environments.manipulation.reach2cam import Reach2Cam
+from robosuite.environments.manipulation.reachImgSimplified import reachImgSimplified
+from robosuite.environments.manipulation.lift2cam import Lift2Cam
+from robosuite.environments.manipulation.reach import Reach
 from robosuite.environments.manipulation.lift import Lift
 from robosuite.environments.manipulation.stack import Stack
 from robosuite.environments.manipulation.nut_assembly import NutAssembly

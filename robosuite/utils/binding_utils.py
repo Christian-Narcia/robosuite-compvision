@@ -4,6 +4,8 @@ Useful classes for supporting DeepMind MuJoCo binding.
 
 import gc
 import os
+# import os
+os.environ['MUJOCO_GL'] = 'glfw'
 from tempfile import TemporaryDirectory
 
 # DIRTY HACK copied from mujoco-py - a global lock on rendering
@@ -39,6 +41,8 @@ if macros.MUJOCO_GPU_RENDERING and os.environ.get("MUJOCO_GL", None) not in ["os
     # option for rendering
     if _SYSTEM == "Darwin":
         os.environ["MUJOCO_GL"] = "cgl"
+    elif _SYSTEM == "Windows":
+        os.environ["MUJOCO_GL"] = "glfw"
     else:
         os.environ["MUJOCO_GL"] = "egl"
 _MUJOCO_GL = os.environ.get("MUJOCO_GL", "").lower().strip()
@@ -53,7 +57,7 @@ class MjRenderContext:
     """
 
     def __init__(self, sim, offscreen=True, device_id=-1, max_width=640, max_height=480):
-
+        # print("_SYSTEM", _SYSTEM)
         # move this logic from outside to inside class to avoid multiprocessing issues
         if _MUJOCO_GL not in ("disable", "disabled", "off", "false", "0"):
             _VALID_MUJOCO_GL = ("enable", "enabled", "on", "true", "1", "glfw", "")
@@ -61,9 +65,11 @@ class MjRenderContext:
                 _VALID_MUJOCO_GL += ("glx", "egl", "osmesa")
             elif _SYSTEM == "Windows":
                 _VALID_MUJOCO_GL += ("wgl",)
+                print(_VALID_MUJOCO_GL)
             elif _SYSTEM == "Darwin":
                 _VALID_MUJOCO_GL += ("cgl",)
             if _MUJOCO_GL not in _VALID_MUJOCO_GL:
+                # print(_MUJOCO_GL,_VALID_MUJOCO_GL)
                 raise RuntimeError(f"invalid value for environment variable MUJOCO_GL: {_MUJOCO_GL}")
             if _SYSTEM == "Linux" and _MUJOCO_GL == "osmesa":
                 from robosuite.renderers.context.osmesa_context import OSMesaGLContext as GLContext

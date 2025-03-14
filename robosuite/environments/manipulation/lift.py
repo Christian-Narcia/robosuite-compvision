@@ -158,7 +158,7 @@ class Lift(ManipulationEnv):
         render_gpu_device_id=-1,
         control_freq=20,
         lite_physics=True,
-        horizon=1000,
+        horizon=500,
         ignore_done=False,
         hard_reset=True,
         camera_names="agentview",
