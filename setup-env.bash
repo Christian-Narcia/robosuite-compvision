@@ -30,6 +30,8 @@ pip install -r $REQUIREMENTS_FILE
 pip install torch==2.6
 pip install torchvision==0.21
 pip install tensorboard
+pip install stable_baselines3
+pip install h6py
 
 
 echo "Setup complete. The environment '$ENV_NAME' is ready."
