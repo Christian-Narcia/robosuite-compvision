@@ -3,6 +3,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import matplotlib.pyplot as plt
+from datetime import datetime
 
 import robosuite as suite
 from robosuite.wrappers import GymWrapper
@@ -295,7 +296,26 @@ class CustomActorCriticPolicy(ActorCriticPolicy):
             **kwargs
         )
 
+from stable_baselines3.common.monitor import Monitor
+from stable_baselines3.common.vec_env import SubprocVecEnv
 
+def make_env():
+    def _init():
+        env = suite.make(
+            env_name=envName,
+            camera_names=["topdown", "sideview"],
+            robots="UR5ev2",
+            has_offscreen_renderer=True,
+            use_camera_obs=True,
+            use_object_obs=False,  # no object info
+            camera_heights=img_dim,
+            camera_widths=img_dim,
+            reward_shaping=True,
+        )
+        env = GymWrapper(env)
+        env = Monitor(env)  # Add this line
+        return env
+    return _init
 ################################################################
 #               Main Training Code
 ################################################################
@@ -307,33 +327,43 @@ if __name__ == "__main__":
     print("Using device:", device)
     pathDir = "../runs/"
 
-    # Create robosuite environment (two cameras)
-    env = suite.make(
-        env_name=envName,
-        camera_names=["topdown", "sideview"],
-        robots="UR5ev2",
-        has_offscreen_renderer=True,
-        use_camera_obs=True,
-        use_object_obs=False,  # no object info
-        camera_heights=img_dim,
-        camera_widths=img_dim,
-        reward_shaping=True,
-    )
-    # Wrap in GymWrapper
-    vec_env = GymWrapper(env)
+
+    # Generate a unique run name based on timestamp
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    run_name = f"PPO_{timestamp}"
+
+    base_log_dir = f"{pathDir}2Img2CNNPPO_{envName}_sb3_simplified_vect_{version}"
+    full_log_dir = os.path.join(base_log_dir, run_name)
+    print(full_log_dir)
+    # Create the folder ahead of time (optional, SB3 will also create it)
+    os.makedirs(full_log_dir, exist_ok=True)
+    # exit()
+
+    env_config = {
+    "Reach": 200,  # epLen for Reach environment
+    "Lift": 1000,    # epLen for Lift environment
+    "reachImgSimplified" : 200
+    }
+
+    num_envs = 1  # Number of parallel environments
+    epLen = env_config[envName]
+    n_steps = epLen * num_envs
+    vec_env = SubprocVecEnv([make_env() for _ in range(num_envs)])
+
+
 
     # Instantiate custom policy with PPO
+    # Now pass this to SB3 and your image logger
     model = PPO(
         policy=CustomActorCriticPolicy,
         env=vec_env,
         verbose=1,
-        tensorboard_log=f"{pathDir}Img2CNNPPO_{envName}_sb3_simplified_{version}/",
+        tensorboard_log=full_log_dir,  # this is still the parent
         device=device
     )
 
-    # Create the callback
     image_logging_callback = ImageLoggingCallback(
-        log_dir=f"{pathDir}Img2CNNPPO_{envName}_sb3_simplified_{version}/tf_logs2",
+        log_dir=os.path.join(full_log_dir, "images"),  # your own custom log path
         log_freq=10000,
         verbose=1
     )

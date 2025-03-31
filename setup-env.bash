@@ -28,6 +28,7 @@ REPO_NAME=$(basename "$REPO_URL" .git)
 pip install -r $REQUIREMENTS_FILE
 
 pip install torch==2.6
+#cluster torchvision 0.20.0
 pip install torchvision==0.21
 pip install tensorboard
 pip install stable_baselines3
