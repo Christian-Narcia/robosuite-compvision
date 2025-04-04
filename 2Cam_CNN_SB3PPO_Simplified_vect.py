@@ -5,9 +5,7 @@ import torch.nn as nn
 import matplotlib.pyplot as plt
 from datetime import datetime
 from PIL import Image
-
 import robosuite as suite
-# from robosuite.wrappers import GymWrapper
 from robosuite.wrappers import GymWrapper
 
 from stable_baselines3 import PPO
@@ -15,7 +13,7 @@ from stable_baselines3.common.policies import ActorCriticPolicy
 from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
 from stable_baselines3.common.callbacks import BaseCallback
 from torch.utils.tensorboard import SummaryWriter
-
+# KMP_DUPLICATE_LIB_OK=True
 
 ################################################################
 #               Custom Callback for CNN Heatmaps
@@ -24,7 +22,7 @@ from torch.utils.tensorboard import SummaryWriter
 class ImageLoggingCallback(BaseCallback):
     """
     A custom callback that, at intervals, logs CNN "heatmap" overlays
-    for both front-view and side-view images
+    for both front-view (channels 0..2) and side-view (channels 3..5) images
     directly to TensorBoard.
     """
     def __init__(
@@ -74,66 +72,40 @@ class ImageLoggingCallback(BaseCallback):
         obs_single = obs[0]  # shape: (obs_dim,)
         obs_single = torch.tensor(obs_single, dtype=torch.float).unsqueeze(0).to(self.model.device)
 
-        # Slice out the image portion: 3 × 64 × 64 
-        image_dim = numLayers * img_dim * img_dim  # 3 * 64 * 64 
-        image_obs1 = obs_single[:, :image_dim] 
-        # image_obs1_1 = obs_single[:, :image_dim]   
-        image_obs2 = obs_single[:, image_dim:2*image_dim] 
+        # Slice out the image portion: 6 × 64 × 64 = 24,576
+        image_dim = numLayers * img_dim * img_dim  # 6 * 64 * 64 = 24576
+        image_obs = obs_single[:, :image_dim]      # shape = (1, 24576)
 
-        # Reshape to (batch=1, channels=3, H=64, W=64)
-        # image_obs1 = image_obs1.view(-1, numLayers, img_dim, img_dim)
-        # image_obs2 = image_obs2.view(-1, numLayers, img_dim, img_dim)
-
-        image_obs1 = image_obs1.unflatten(dim = 1, sizes = (img_dim, img_dim, numLayers))
-        image_obs1 = image_obs1.permute(0, 3, 1, 2)
-        image_obs2 = image_obs2.unflatten(dim = 1, sizes = (img_dim, img_dim, numLayers))
-        image_obs2 = image_obs2.permute(0, 3, 1, 2)
-
-        # image_obs1_1 = image_obs1_1.unflatten(dim = 1, sizes = (img_dim, img_dim, numLayers))
-        # image_obs1_1 = image_obs1_1.permute(0, 3, 1, 2)
-
-
+        # Reshape to (batch=1, channels=6, H=64, W=64)
+        # image_obs = image_obs.view(-1, numLayers, img_dim, img_dim)
+        image_obs = image_obs.unflatten(dim = 1, sizes = (img_dim, img_dim, numLayers))
+        image_obs = image_obs.permute(0, 3, 1, 2)
 
         # Forward pass through the custom CNN
-        cnn_module1 = self.model.policy.features_extractor.cnn1
-        cnn_module2 = self.model.policy.features_extractor.cnn2
+        cnn_module = self.model.policy.features_extractor.cnn
         with torch.no_grad():
             # cnn_module returns (cnn_output, [feat1, feat2, feat3])
             # each featN has shape (batch, channels, H, W)
-            _, feature_maps1 = cnn_module1(image_obs1)
-            _, feature_maps2 = cnn_module2(image_obs2)
+            _, feature_maps = cnn_module(image_obs)
 
         # The input image as float in [0,1].
-        frontview_img = (image_obs1 / 255.0).cpu().squeeze(0)  # Now shape is (3,64,64)
-        sideview_img  = (image_obs2 / 255.0).cpu().squeeze(0)  # Same shape
-        # print(image_obs1_1.shape)  
-        # image_obs1_1 = image_obs1_1.view(-1, numLayers, img_dim, img_dim)
-        # print(image_obs1_1.shape)
-        # image_obs1_1 = image_obs1_1.squeeze(0).permute(1, 2, 0)  # shape (64, 64, 3)
-        # image_obs1_1 = image_obs1_1.cpu().numpy().astype(np.uint8)
-        # plt.imshow(image_obs1_1)  # Show the image fully
-        # plt.axis('off')
-        # plt.show()
-        # exit()
+        # front-view = channels [0..2], side-view = [3..5].
+        frontview_img = (image_obs[0, 0:3] / 255.0).cpu()  # shape (3,64,64)
+        sideview_img  = (image_obs[0, 3:6] / 255.0).cpu()  # shape (3,64,64)
+
         # For each layer's feature map, create & log an overlay:
-        for i, (f_map1, f_map2) in enumerate(zip(feature_maps1, feature_maps2)):
-            # f_map1 and f_map2 have shape (1, channels, H, W) => pick batch=0
-            f_map1_single = f_map1[0]  # shape (channels, H, W)
-            f_map2_single = f_map2[0]  # shape (channels, H, W)
+        for i, f_map in enumerate(feature_maps):
+            # f_map shape = (1, channels, H, W) => pick batch=0
+            f_map_single = f_map[0]  # shape (channels, H, W)
 
             # 1) average across channels => shape (H, W)
-            heatmap1 = f_map1_single.mean(dim=0).cpu().numpy()  # Front view heatmap
-            heatmap2 = f_map2_single.mean(dim=0).cpu().numpy()  # Side view heatmap
+            heatmap = f_map_single.mean(dim=0).cpu().numpy()
+            # normalize to [0,1]
+            heatmap -= heatmap.min()
+            heatmap /= (heatmap.max() + 1e-8)
 
-            # Normalize to [0,1]
-            heatmap1 -= heatmap1.min()
-            heatmap1 /= (heatmap1.max() + 1e-8)
-
-            heatmap2 -= heatmap2.min()
-            heatmap2 /= (heatmap2.max() + 1e-8)
-
-            # 2) Overlay on front-view image (using feature_maps1)
-            fig_front = self._overlay_heatmap(frontview_img, heatmap1)
+            # 2) overlay on front-view
+            fig_front = self._overlay_heatmap(frontview_img, heatmap)
             front_tensor = self._figure_to_image_tensor(fig_front)
             self.writer.add_image(
                 f"heatmap/layer_{i}/topdown",
@@ -142,8 +114,8 @@ class ImageLoggingCallback(BaseCallback):
             )
             plt.close(fig_front)
 
-            # 3) Overlay on side-view image (using feature_maps2)
-            fig_side = self._overlay_heatmap(sideview_img, heatmap2)
+            # 3) overlay on side-view
+            fig_side = self._overlay_heatmap(sideview_img, heatmap)
             side_tensor = self._figure_to_image_tensor(fig_side)
             self.writer.add_image(
                 f"heatmap/layer_{i}/side",
@@ -151,11 +123,8 @@ class ImageLoggingCallback(BaseCallback):
                 global_step=self.model.num_timesteps
             )
             plt.close(fig_side)
-            
-            # print("frontview_img shape:", frontview_img.shape)
-            # print("min:", frontview_img.min(), "max:", frontview_img.max())
-            # exit()
 
+        self.writer.flush()
 
     def _overlay_heatmap(self, img_3ch, heatmap):
         """
@@ -165,28 +134,17 @@ class ImageLoggingCallback(BaseCallback):
         heatmap: shape (H, W),    in [0,1]
         Returns a Matplotlib Figure object.
         """
-
         # Convert background to shape (H, W, 3)
-        background = img_3ch.permute(1, 2, 0).numpy()  # (H, W, 3)
-        # plt.imshow(background)
+        background = img_3ch.permute(1, 2, 0).numpy()  # (64,64,3)
 
-        # Normalize heatmap to [0,1]
-        # heatmap -= heatmap.min()
-        # heatmap /= (heatmap.max() + 1e-8)
-
-        # Optional: apply gamma correction to soften intensity
-        # heatmap = np.power(heatmap, 0.6)
-        # print(background)
         background = Image.fromarray((background * 255).astype(np.uint8))
         downscaled_background = background.resize((len(heatmap[0]), len(heatmap[0])))
         downscaled_image = np.array(downscaled_background) / 255.0
-        # exit()
-        # Create figure
-        fig = plt.figure(figsize=(img_dim/100,img_dim/100), dpi=100)
-        plt.imshow(downscaled_image)  # Show the image fully
-        plt.imshow(heatmap, cmap='jet', alpha=0.7)  # , interpolation='bilinear' Soft overlay
+
+        fig = plt.figure(figsize=(0.64, 0.64))
+        plt.imshow(downscaled_image)  # show the raw image
+        plt.imshow(heatmap, alpha=0.7, cmap='jet')  # overlay heatmap
         plt.axis('off')
-        plt.tight_layout(pad=0)
         return fig
 
     def _figure_to_image_tensor(self, fig):
@@ -215,10 +173,10 @@ class ImageLoggingCallback(BaseCallback):
 
 
 ################################################################
-#        Custom CNN Feature Extractor for 3-Channel Input
+#        Custom CNN Feature Extractor for 6-Channel Input
 ################################################################
 
-numLayers = 3
+numLayers = 6
 img_dim = 64
 
 class CNNFeatures(nn.Module):
@@ -239,7 +197,7 @@ class CNNFeatures(nn.Module):
         self.flatten = nn.Flatten()
 
     def forward(self, x):
-        # x shape: (batch, 3, 64, 64)
+        # x shape: (batch, 6, 64, 64)
         x = self.conv1(x)
         x = self.relu1(x)
         feat1 = x.clone()
@@ -259,88 +217,55 @@ class CNNFeatures(nn.Module):
 
 class CustomFeaturesExtractor(BaseFeaturesExtractor):
     """
-    Slices out the image portion, reshapes to (N,3,64,64),
+    Slices out the image portion, reshapes to (N,6,64,64),
     then passes through CNN. Optionally can include proprio obs.
     """
     def __init__(self, observation_space, features_dim=img_dim, use_proprio_obs=False):
         super(CustomFeaturesExtractor, self).__init__(observation_space, features_dim)
         
-        self.cnn1 = CNNFeatures()
-        self.cnn2 = CNNFeatures()
+        self.cnn = CNNFeatures()
         self.use_proprio_obs = use_proprio_obs
         
         # Check CNN output dimension
         with torch.no_grad():
             sample_image = torch.zeros(1, numLayers, img_dim, img_dim)
-            cnn1_output, _ = self.cnn1(sample_image)
-            cnn2_output, _ = self.cnn2(sample_image)
-            cnn1_output_dim = cnn1_output.shape[1]
-            cnn2_output_dim = cnn2_output.shape[1]
+            cnn_output, _ = self.cnn(sample_image)
+            cnn_output_dim = cnn_output.shape[1]
         
         # If we were using proprio, specify dimension
         if self.use_proprio_obs:
-            self.proprio_dim = 41  # environment obs number
+            self.proprio_dim = 41  # or whatever dimension your environment has
         else:
             self.proprio_dim = 0
         
-        self._features_dim = cnn1_output_dim + cnn2_output_dim + self.proprio_dim
+        self._features_dim = cnn_output_dim + self.proprio_dim
 
     def forward(self, observations: torch.Tensor) -> torch.Tensor:
         batch_size = observations.shape[0]
 
         # Number of pixels in the image portion
-        image_dim = numLayers * img_dim * img_dim  # 3*64*64=12,288
+        image_dim = numLayers * img_dim * img_dim  # 6*64*64=24576
 
         # Split observation
-        cam1view_image = observations[:, :image_dim]
-        cam2view_image = observations[:, image_dim:image_dim*2]
-        robot0_proprio_state = observations[:, image_dim*2:]  # if any
+        camview_image = observations[:, :image_dim]
+        robot0_proprio_state = observations[:, image_dim:]  # if any
 
-
-        # print(cam1view_image.shape)
-        cam1view_image = cam1view_image.unflatten(dim = 1, sizes = (img_dim, img_dim, numLayers))
-        cam1view_image = cam1view_image.permute(0, 3, 1, 2)
-        cam2view_image = cam2view_image.unflatten(dim = 1, sizes = (img_dim, img_dim, numLayers))
-        cam2view_image = cam2view_image.permute(0, 3, 1, 2)
-        # print(cam1view_image1.shape)
-        # plt.imshow(cam1view_image1.squeeze(0).permute(1,2,0).cpu().numpy().astype(np.uint8))  # Show the image fully
-        # plt.axis('off')
-        # plt.show()
-        # print("=="*20)
-        # exit()
-        
-        # cam2view_image = cam2view_image.view(-1, numLayers, img_dim, img_dim)
-        # print(cam2view_image.shape)
-        # exit()
-
-
-        # Reshape image => (batch,3,64,64)
-        # cam1view_image = cam1view_image.view(batch_size, numLayers, img_dim, img_dim)
-        # cam2view_image = cam2view_image.view(batch_size, numLayers, img_dim, img_dim)
-
-
-        # cam1view_image1 = cam1view_image.squeeze(0).permute(1, 2, 0)  # shape (64, 64, 3)
-        # cam1view_image1 = cam1view_image1.cpu().numpy().astype(np.uint8)
-        # plt.imshow(cam1view_image1)  # Show the image fully
-        # plt.axis('off')
-        # plt.show()
-        # print("=="*20)
-        # exit()
-
+        # Reshape image => (batch,6,64,64)
+        # camview_image = camview_image.view(batch_size, numLayers, img_dim, img_dim)
+        camview_image = camview_image.unflatten(dim = 1, sizes = (img_dim, img_dim, numLayers))
+        camview_image = camview_image.permute(0, 3, 1, 2)
         # Normalize from [0,255] => [0,1]
-        cam1view_image = cam1view_image / 255.0
-        cam2view_image = cam2view_image / 255.0
+        camview_image = camview_image / 255.0
 
         # Pass image through CNN
-        cnn1_output, _ = self.cnn1(cam1view_image)
-        cnn2_output, _ = self.cnn2(cam2view_image)
+        cnn_output, _ = self.cnn(camview_image)
         # print(len(cnn_output[0]))
 
         # If using proprio, concat
         if self.use_proprio_obs:
-            features = torch.cat([cnn1_output, cnn2_output, robot0_proprio_state], dim=1)
+            features = torch.cat([cnn_output, robot0_proprio_state], dim=1)
         else:
-            features = torch.cat([cnn1_output, cnn2_output], dim=1)
+            features = cnn_output
 
         return features
 
@@ -381,13 +306,14 @@ def make_env():
         env = Monitor(env)  # Add this line
         return env
     return _init
+
 ################################################################
 #               Main Training Code
 ################################################################
 if __name__ == "__main__":
     # Basic parameters
     envName = "reachImgSimplified"
-    version = "v6"
+    version = "v5"
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     print("Using device:", device)
     pathDir = "../runs/"
@@ -397,36 +323,45 @@ if __name__ == "__main__":
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     run_name = f"PPO_{timestamp}"
 
-    base_log_dir = f"{pathDir}2Img2CNNPPO_{envName}_sb3_simplified_vect_{version}"
+    base_log_dir = f"{pathDir}2ImgCNNPPO_{envName}_sb3_simplified_vect_{version}"
     full_log_dir = os.path.join(base_log_dir, run_name)
-    print(full_log_dir)
-    # Create the folder ahead of time (optional, SB3 will also create it)
-    os.makedirs(full_log_dir, exist_ok=True)
 
+    # Create robosuite environment (two cameras)
+    # env = suite.make(
+    #     env_name=envName,
+    #     camera_names=["topdown", "sideview"],
+    #     robots="UR5ev2",
+    #     has_offscreen_renderer=True,
+    #     use_camera_obs=True,
+    #     use_object_obs=False,  # no object info
+    #     camera_heights=img_dim,
+    #     camera_widths=img_dim,
+    #     reward_shaping=True,
+    # )
+    # Wrap in GymWrapper
     env_config = {
-    "Reach": 200,  # epLen for Reach environment
-    "Lift": 1000,    # epLen for Lift environment
-    "reachImgSimplified" : 200
+        "Reach": 200,  # epLen for Reach environment
+        "Lift": 1000,    # epLen for Lift environment
+        "reachImgSimplified" : 200
     }
-
     num_envs = 4  # Number of parallel environments
     epLen = env_config[envName]
     n_steps = epLen * num_envs
     vec_env = SubprocVecEnv([make_env() for _ in range(num_envs)])
 
     # Instantiate custom policy with PPO
-    # Now pass this to SB3 and your image logger
     model = PPO(
         policy=CustomActorCriticPolicy,
         env=vec_env,
         verbose=1,
-        tensorboard_log=full_log_dir,  # this is still the parent
+        tensorboard_log=full_log_dir,
         device=device
     )
 
+    # Create the callback
     image_logging_callback = ImageLoggingCallback(
         log_dir=os.path.join(full_log_dir, "images"),  # your own custom log path
-        log_freq=10000,
+        log_freq=100000,
         verbose=1
     )
 
@@ -437,6 +372,10 @@ if __name__ == "__main__":
     )
 
     # Save final model
-    os.makedirs(f"{pathDir}2Img2CNNPPO_{envName}_sb3_simplified_{version}/", exist_ok=True)
-    model.save(f"{pathDir}2Img2CNNPPO_{envName}_sb3_simplified_{version}/{envName}_Img_2CNN_ppo_reach_simplified_{version}")
+    # os.makedirs(f"./runs/ImgPPO_{envName}_sb3_simplified_{version}/", exist_ok=True)
+    # model.save(f"./runs/ImgPPO_{envName}_sb3_simplified_{version}/{envName}_Img_ppo_reach_simplified_{version}")
+    # print("Training complete and model saved.")
+        # Save final model
+    os.makedirs(f"{pathDir}2ImgCNNPPO_{envName}_sb3_simplified_{version}/", exist_ok=True)
+    model.save(f"{pathDir}2ImgCNNPPO_{envName}_sb3_simplified_{version}/{envName}_Img_2CNN_ppo_reach_simplified_{version}")
     print("Training complete and model saved.")

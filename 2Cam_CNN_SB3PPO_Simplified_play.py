@@ -140,7 +140,9 @@ class CustomFeaturesExtractor(BaseFeaturesExtractor):
         robot0_proprio_state = observations[:, image_dim:]  # if any
 
         # Reshape image => (batch,6,64,64)
-        camview_image = camview_image.view(batch_size, numLayers, img_dim, img_dim)
+        # camview_image = camview_image.view(batch_size, numLayers, img_dim, img_dim)
+        image_obs = image_obs.unflatten(dim = 1, sizes = (img_dim, img_dim, numLayers))
+        image_obs = image_obs.permute(0, 3, 1, 2)
         # Normalize from [0,255] => [0,1]
         camview_image = camview_image / 255.0
 

@@ -314,6 +314,7 @@ class reachImgSimplified(ManipulationEnv):
             # reward = reaching_reward
 
             reward = 1 - np.tanh(10.0 * dist)
+            
 
         ######################################### FIXX
         # reward = .1
@@ -358,6 +359,33 @@ class reachImgSimplified(ManipulationEnv):
 
         ##### Spawn ball on curve within arm reach
 
+        # if self.target_pos is None:
+        #     radius = -0.3
+        #     y_min, y_max = -0.3, 0.3
+
+        #     # Compute angle limits for the left side
+        #     theta_min = np.pi - np.arcsin(y_max / radius)  # Upper bound in left half
+        #     theta_max = np.pi - np.arcsin(y_min / radius)  # Lower bound in left half
+
+        #     # generate a single random point in the sector
+        #     theta = np.random.uniform(theta_min, theta_max)
+        #     x = radius * np.cos(theta)
+        #     y = radius * np.sin(theta)
+
+        #     # print("Setting Position: ", x, y)
+        #     # print("Recalculated" , np.sqrt(radius**2 - y**2))
+        #     # print("Theta", theta)
+
+        #     target_pos = [x-0.3, y, 1]
+
+        #     # target_pos = [-0.02979875, -0.01872948, 1]
+        #     # target_pos = [-0.3, -0.01872948, 1]
+        #     # target_pos = [-0.01, 0, 1]
+        #     # target_pos = [-0.2, -0.3, 1]
+        # else:
+        #     target_pos = self.target_pos
+
+        ############### Spawn ball on curve with 3 different Z
         if self.target_pos is None:
             radius = -0.3
             y_min, y_max = -0.3, 0.3
@@ -366,21 +394,21 @@ class reachImgSimplified(ManipulationEnv):
             theta_min = np.pi - np.arcsin(y_max / radius)  # Upper bound in left half
             theta_max = np.pi - np.arcsin(y_min / radius)  # Lower bound in left half
 
-            # generate a single random point in the sector
+            # Generate a single random point in the sector
             theta = np.random.uniform(theta_min, theta_max)
             x = radius * np.cos(theta)
             y = radius * np.sin(theta)
-
-            # print("Setting Position: ", x, y)
-            # print("Recalculated" , np.sqrt(radius**2 - y**2))
-            # print("Theta", theta)
-
-            target_pos = [x-0.3, y, 1]
-
-            # target_pos = [-0.02979875, -0.01872948, 1]
-            # target_pos = [-0.3, -0.01872948, 1]
-            # target_pos = [-0.01, 0, 1]
-            # target_pos = [-0.2, -0.3, 1]
+            z = np.random.choice([1, 1.3, 0.75]) 
+            # z = 1.3
+            # z = 1.3
+            # z = 0.75
+            
+            x_offset = -0.3 if z == 1.3 else (-0.3 if z == 0.75 else -0.3)  # Adjust x offset based on z
+            # x = 0
+            # x_offset = -0.2
+            # x_offset = -0.1
+            # y= 0
+            target_pos = [x + x_offset, y, z]
         else:
             target_pos = self.target_pos
 
