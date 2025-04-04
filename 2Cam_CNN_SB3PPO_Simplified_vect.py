@@ -376,6 +376,6 @@ if __name__ == "__main__":
     # model.save(f"./runs/ImgPPO_{envName}_sb3_simplified_{version}/{envName}_Img_ppo_reach_simplified_{version}")
     # print("Training complete and model saved.")
         # Save final model
-    os.makedirs(f"{pathDir}2ImgCNNPPO_{envName}_sb3_simplified_{version}/", exist_ok=True)
-    model.save(f"{pathDir}2ImgCNNPPO_{envName}_sb3_simplified_{version}/{envName}_Img_2CNN_ppo_reach_simplified_{version}")
+    # os.makedirs(f"{pathDir}2ImgCNNPPO_{envName}_sb3_simplified_{version}_vect/", exist_ok=True)
+    model.save(f"{full_log_dir}_model")
     print("Training complete and model saved.")

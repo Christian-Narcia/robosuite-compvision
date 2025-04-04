@@ -254,7 +254,9 @@ if __name__ == "__main__":
     # Update the path to your trained model zip
     # model_path = "./runs/ImgPPO_reachImgSimplified_sb3_simplified_v5/reachImgSimplified_Img_ppo_reach_simplified_v5.zip"
     # model_path = "./runs/ImgPPO_reachImgSimplified_sb3_simplified_v4/reachImgSimplified_Img_ppo_reach_simplified_v4.zip"
-    model_path = "../cluster-robo-04_12/runs/ImgPPO_reachImgSimplified_sb3_simplified_v5/reachImgSimplified_Img_ppo_reach_simplified_v5.zip"
+    # model_path = "../cluster-robo-04_12/runs/ImgPPO_reachImgSimplified_sb3_simplified_v5/reachImgSimplified_Img_ppo_reach_simplified_v5.zip"
+
+    model_path = "../runs/2ImgCNNPPO_reachImgSimplified_sb3_simplified_v5/reachImgSimplified_2Img_1CNN_ppo_reach_simplified_v5_fixed.zip"
 
 
 
